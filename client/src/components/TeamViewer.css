@@ -1,0 +1,38 @@
+.teamViewerContainer {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  width: 308px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transform: translateX(-50%);
+}
+
+.team {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(0,0,0,.55);
+  font-size: 10px;
+}
+
+.team.teamA {
+  background-color: #0b73ff;
+  color: #fff;
+}
+
+.team.teamB {
+  background-color: #ffec1a;
+  color: #000;
+}
+
+.teamMem {
+  font-size: 20px;
+  font-weight: bold;
+}

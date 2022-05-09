@@ -2,6 +2,5 @@
 
 ## Running Server
 ```bash
-$cd server/
-$npx nodemon server.js
+$npx nodemon server/server.js
 ```
