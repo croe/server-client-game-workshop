@@ -17,17 +17,23 @@ db.team.loadDatabase()
 
 const operationCalc = (a, b, op) => {
   switch (op) {
-    case '+': return Number(a) + Number(b)
-    case '-': return Number(a) - Number(b)
-    case '*': return Number(a) * Number(b)
+    case '+': return Number(b) + Number(a)
+    case '-': return Number(b) - Number(a)
+    case '*': return Number(b) * Number(a)
   }
+}
+
+const sendCurrentGame = () => {
+  db.game.find({}, (err, docs) => {
+    io.sockets.emit('init:game', _.orderBy(docs, ['createdAt'], ['desc']))
+  })
 }
 
 const initGame = () => {
   const gameMap = [[null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null], [null,null,null,null,null,null,null,null,null,null]]
   const generateHeader = () => {
     const result = []
-    for (let i = 10; i > 0; i--) {result.push(_.random(1, 9))}
+    for (let i = 10; i > 0; i--) {result.push(_.random(1, 20))}
     return result
   }
   const generateOperation = () => {
@@ -40,10 +46,30 @@ const initGame = () => {
     op_header: generateOperation(),
     map: gameMap,
     createdAt: new Date().getTime(),
+    status: 'ready',
   }
   db.game.insert(initGameData)
+  sendCurrentGame()
+}
+const startGame = () => {
   db.game.find({}, (err, docs) => {
-    io.sockets.emit('init:game', _.orderBy(docs, ['createdAt'], ['desc']))
+    const currentGame = _.orderBy(docs, ['createdAt'], ['desc'])[0]
+    db.game.update({_id: currentGame._id}, {$set: { status: 'start' }}, {multi: true}, (err, doc) => {
+      sendCurrentGame()
+    })
+  })
+}
+const endGame = () => {
+  db.game.find({}, (err, docs) => {
+    const currentGame = _.orderBy(docs, ['createdAt'], ['desc'])[0]
+    // 勝敗の数え分けと勝者情報の送信
+    const game = _.flattenDeep(currentGame.map).filter(o => o && o.team)
+    const a_team = game.filter(o => o.team === 'a').length
+    const b_team = game.filter(o => o.team === 'b').length
+    db.game.update({_id: currentGame._id}, {$set: { status: 'end' }}, {multi: true}, (err, doc) => {
+      sendCurrentGame()
+    })
+    io.sockets.emit('end:game', { a_team, b_team })
   })
 }
 
@@ -75,12 +101,17 @@ const socket = ({io}) => {
         const currentGame = _.orderBy(docs, ['createdAt'], ['desc'])[0]
         if (operationCalc(currentGame.x_header[msg.position.x], currentGame.y_header[msg.position.y], currentGame.op_header) === Number(msg.answer)) {
           if (currentGame.map[msg.position.y][msg.position.x]) return
-          currentGame.map[msg.position.y][msg.position.x] = msg.team
+          currentGame.map[msg.position.y][msg.position.x] = {
+            team: msg.team,
+            val: msg.answer,
+          }
           db.game.update({_id: currentGame._id}, {$set: { map: currentGame.map }}, {multi: true}, (err, doc) => {
-            db.game.find({}, (err, docs) => {
-              io.sockets.emit('init:game', _.orderBy(docs, ['createdAt'], ['desc']))
-            })
+            sendCurrentGame()
           })
+          // ゲーム終了時の処理
+          if (_.flattenDeep(currentGame.map).filter(o => o === null).length === 0) {
+            endGame()
+          }
         } else {
           console.log('wrong')
         }
@@ -88,6 +119,8 @@ const socket = ({io}) => {
     })
     // From Admin
     socket.on('game:init', () => initGame())
+    socket.on('game:start', () => startGame())
+    socket.on('game:end', () => endGame())
     socket.on('game:reset', () => db.game.remove({}, { multi: true }, (err, numRemoved) => initGame()))
     socket.on('member:reset', () => db.team.remove({}, { multi: true }, (err, numRemoved) => {
       db.team.find({}, (err, docs) => io.sockets.emit("update:member", docs))

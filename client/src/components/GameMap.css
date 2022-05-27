@@ -1,3 +1,22 @@
+.gameMapWrapper {
+
+}
+.gameReset {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 550px;
+  height: 550px;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  background-color: #906aff;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+}
 .gameMapContainer {
   position: fixed;
   top: 50%;
@@ -34,15 +53,18 @@
 
 .gameVal.team-a {
   background-color: #0b73ff;
+  color: #ffffff;
 }
 .gameVal.team-b {
   background-color: #ffec1a;
+  color: #000000;
 }
 
-.gameMapContainer.mini {
+.gameReset.mini, .gameMapContainer.mini {
   width: 308px;
   height: 308px;
 }
+
 
 .gameMapContainer.mini .gameHead,
 .gameMapContainer.mini .gameVal {
@@ -51,5 +73,5 @@
 }
 
 .gameMapContainer.mini .gameVal {
-  font-size: 0;
+  font-size: 10px;
 }
